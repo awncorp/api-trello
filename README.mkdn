@@ -1,0 +1,476 @@
+# NAME
+
+API::Trello - Perl 5 API wrapper for Trello
+
+[![Build Status](https://travis-ci.org/alnewkirk/API-Trello.png?branch=master)](https://travis-ci.org/alnewkirk/API-Trello)
+
+# VERSION
+
+version 0.03
+
+# SYNOPSIS
+
+    use API::Trello;
+
+    my $trello = API::Trello->new(
+        key        => 'KEY',
+        token      => 'TOKEN',
+        identifier => 'APPLICATION NAME',
+    );
+
+    $trello->debug(1);
+    $trello->fatal(1);
+
+    my $board = $trello->boards('4d5ea62fd76a');
+    my $results = $board->fetch;
+
+    # after some introspection
+
+    $board->update( ... );
+
+# DESCRIPTION
+
+This distribution provides an object-oriented thin-client library for
+interacting with the Trello ([http://trello.com](http://trello.com)) API. For usage and
+documentation information visit [https://trello.com/docs/gettingstarted/index.html](https://trello.com/docs/gettingstarted/index.html).
+
+# THIN CLIENT
+
+A thin-client library is advantageous as it has complete API coverage and
+can easily adapt to changes in the API with minimal effort. As a thin-client
+library, this module does not map specific HTTP requests to specific routines,
+nor does it provide parameter validation, pagination, or other conventions
+found in typical API client implementations, instead, it simply provides a
+simple and consistent mechanism for dynamically generating HTTP requests.
+Additionally, this module has support for debugging and retrying API calls as
+well as throwing exceptions when 4xx and 5xx server response codes are
+returned.
+
+## Building
+
+    my $board = $trello->boards('4d5ea62fd76a');
+
+    $board->action; # GET /boards/4d5ea62fd76a
+    $board->action('head'); # HEAD /boards/4d5ea62fd76a
+    $board->action('patch'); # PATCH /boards/4d5ea62fd76a
+
+Building up an HTTP request object is extremely easy, simply call method names
+which correspond to the API's path segments in the resource you wish to execute
+a request against. This module uses autoloading and returns a new instance with
+each method call. The following is the equivalent:
+
+## Chaining
+
+    my $board = $trello->resource('boards', '4d5ea62fd76a');
+
+    # or
+
+    my $boards = $trello->boards;
+    my $board  = $boards->resource('4d5ea62fd76a');
+
+    # then
+
+    $board->action('put', %args); # PUT /boards/4d5ea62fd76a
+
+Because each call returns a new API instance configured with a resource locator
+based on the supplied parameters, reuse and request isolation are made simple,
+i.e., you will only need to configure the client once in your application.
+
+## Fetching
+
+    my $boards = $trello->boards;
+
+    # query-string parameters
+
+    $boards->fetch( query => { ... } );
+
+    # equivalent to
+
+    my $boards = $trello->resource('boards');
+
+    $boards->action( get => ( query => { ... } ) );
+
+This example illustrates how you might fetch an API resource.
+
+## Creating
+
+    my $boards = $trello->boards;
+
+    # content-body parameters
+
+    $boards->create( data => { ... } );
+
+    # query-string parameters
+
+    $boards->create( query => { ... } );
+
+    # equivalent to
+
+    $trello->resource('boards')->action(
+        post => ( query => { ... }, data => { ... } )
+    );
+
+This example illustrates how you might create a new API resource.
+
+## Updating
+
+    my $boards = $trello->boards;
+    my $board  = $boards->resource('4d5ea62fd76a');
+
+    # content-body parameters
+
+    $board->update( data => { ... } );
+
+    # query-string parameters
+
+    $board->update( query => { ... } );
+
+    # or
+
+    my $board = $trello->boards('4d5ea62fd76a');
+
+    $board->update(...);
+
+    # equivalent to
+
+    $trello->resource('boards')->action(
+        put => ( query => { ... }, data => { ... } )
+    );
+
+This example illustrates how you might update a new API resource.
+
+## Deleting
+
+    my $boards = $trello->boards;
+    my $board  = $boards->resource('4d5ea62fd76a');
+
+    # content-body parameters
+
+    $board->delete( data => { ... } );
+
+    # query-string parameters
+
+    $board->delete( query => { ... } );
+
+    # or
+
+    my $board = $trello->boards('4d5ea62fd76a');
+
+    $board->delete(...);
+
+    # equivalent to
+
+    $trello->resource('boards')->action(
+        delete => ( query => { ... }, data => { ... } )
+    );
+
+This example illustrates how you might delete an API resource.
+
+## Transacting
+
+    my $boards = $trello->resource('boards', '4d5ea62fd76a');
+
+    my ($results, $transaction) = $boards->action( ... );
+
+    my $request  = $transaction->req;
+    my $response = $transaction->res;
+
+    my $headers;
+
+    $headers = $request->headers;
+    $headers = $response->headers;
+
+    # etc
+
+This example illustrates how you can access the transaction object used
+represent and process the HTTP transaction.
+
+# ATTRIBUTES
+
+## identifier
+
+    $trello->identifier;
+    $trello->identifier('IDENTIFIER');
+
+The identifier parameter should be set to a string that identifies your application.
+
+## key
+
+    $trello->key;
+    $trello->key('KEY');
+
+The key parameter should be set to the account holder's API key.
+
+## token
+
+    $trello->token;
+    $trello->token('TOKEN');
+
+The token parameter should be set to the account holder's API access token.
+
+## identifier
+
+    $trello->identifier;
+    $trello->identifier('IDENTIFIER');
+
+The identifier parameter should be set using a string to identify your app.
+
+## debug
+
+    $trello->debug;
+    $trello->debug(1);
+
+The debug attribute if true prints HTTP requests and responses to standard out.
+
+## fatal
+
+    $trello->fatal;
+    $trello->fatal(1);
+
+The fatal attribute if true promotes 4xx and 5xx server response codes to
+exceptions, a [API::Trello::Exception](https://metacpan.org/pod/API::Trello::Exception) object.
+
+## retries
+
+    $trello->retries;
+    $trello->retries(10);
+
+The retries attribute determines how many times an HTTP request should be
+retried if a 4xx or 5xx response is received. This attribute defaults to 0.
+
+## timeout
+
+    $trello->timeout;
+    $trello->timeout(5);
+
+The timeout attribute determines how long an HTTP connection should be kept
+alive. This attribute defaults to 10.
+
+## url
+
+    $trello->url;
+    $trello->url(Mojo::URL->new('https://api.trello.com'));
+
+The url attribute set the base/pre-configured URL object that will be used in
+all HTTP requests. This attribute expects a [Mojo::URL](https://metacpan.org/pod/Mojo::URL) object.
+
+## user\_agent
+
+    $trello->user_agent;
+    $trello->user_agent(Mojo::UserAgent->new);
+
+The user\_agent attribute set the pre-configured UserAgent object that will be
+used in all HTTP requests. This attribute expects a [Mojo::UserAgent](https://metacpan.org/pod/Mojo::UserAgent) object.
+
+# METHODS
+
+## action
+
+    my $result = $trello->action($verb, %args);
+
+    # e.g.
+
+    $trello->action('head', %args);    # HEAD request
+    $trello->action('options', %args); # OPTIONS request
+    $trello->action('patch', %args);   # PATCH request
+
+The action method issues a request to the API resource represented by the
+object. The first parameter will be used as the HTTP request method. The
+arguments, expected to be a list of key/value pairs, will be included in the
+request if the key is either `data` or `query`.
+
+## create
+
+    my $results = $trello->create(%args);
+
+    # or
+
+    $trello->POST(%args);
+
+The create method issues a `POST` request to the API resource represented by
+the object. The arguments, expected to be a list of key/value pairs, will be
+included in the request if the key is either `data` or `query`.
+
+## delete
+
+    my $results = $trello->delete(%args);
+
+    # or
+
+    $trello->DELETE(%args);
+
+The delete method issues a `DELETE` request to the API resource represented by
+the object. The arguments, expected to be a list of key/value pairs, will be
+included in the request if the key is either `data` or `query`.
+
+## fetch
+
+    my $results = $trello->fetch(%args);
+
+    # or
+
+    $trello->GET(%args);
+
+The fetch method issues a `GET` request to the API resource represented by the
+object. The arguments, expected to be a list of key/value pairs, will be
+included in the request if the key is either `data` or `query`.
+
+## update
+
+    my $results = $trello->update(%args);
+
+    # or
+
+    $trello->PUT(%args);
+
+The update method issues a `PUT` request to the API resource represented by
+the object. The arguments, expected to be a list of key/value pairs, will be
+included in the request if the key is either `data` or `query`.
+
+# RESOURCES
+
+## actions
+
+    $trello->actions;
+
+The actions method returns a new instance representative of the API
+_actions_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/action/index.html](https://trello.com/docs/api/action/index.html).
+
+## batch
+
+    $trello->batch;
+
+The batch method returns a new instance representative of the API
+_batch_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/batch/index.html](https://trello.com/docs/api/batch/index.html).
+
+## boards
+
+    $trello->boards;
+
+The boards method returns a new instance representative of the API
+_boards_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/board/index.html](https://trello.com/docs/api/board/index.html).
+
+## cards
+
+    $trello->cards;
+
+The cards method returns a new instance representative of the API
+_cards_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/card/index.html](https://trello.com/docs/api/card/index.html).
+
+## checklists
+
+    $trello->checklists;
+
+The checklists method returns a new instance representative of the API
+_checklists_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/checklist/index.html](https://trello.com/docs/api/checklist/index.html).
+
+## labels
+
+    $trello->labels;
+
+The labels method returns a new instance representative of the API
+_labels_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/label/index.html](https://trello.com/docs/api/label/index.html).
+
+## lists
+
+    $trello->lists;
+
+The lists method returns a new instance representative of the API
+_lists_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/list/index.html](https://trello.com/docs/api/list/index.html).
+
+## members
+
+    $trello->members;
+
+The members method returns a new instance representative of the API
+_members_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/member/index.html](https://trello.com/docs/api/member/index.html).
+
+## notifications
+
+    $trello->notifications;
+
+The notifications method returns a new instance representative of the API
+_notifications_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/notification/index.html](https://trello.com/docs/api/notification/index.html).
+
+## organizations
+
+    $trello->organizations;
+
+The organizations method returns a new instance representative of the API
+_organizations_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/organization/index.html](https://trello.com/docs/api/organization/index.html).
+
+## search
+
+    $trello->search;
+
+The search method returns a new instance representative of the API
+_search_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/search/index.html](https://trello.com/docs/api/search/index.html).
+
+## sessions
+
+    $trello->sessions;
+
+The sessions method returns a new instance representative of the API
+_sessions_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/session/index.html](https://trello.com/docs/api/session/index.html).
+
+## tokens
+
+    $trello->tokens;
+
+The tokens method returns a new instance representative of the API
+_tokens_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/token/index.html](https://trello.com/docs/api/token/index.html).
+
+## types
+
+    $trello->types;
+
+The types method returns a new instance representative of the API
+_types_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/type/index.html](https://trello.com/docs/api/type/index.html).
+
+## webhooks
+
+    $trello->webhooks;
+
+The webhooks method returns a new instance representative of the API
+_webhooks_ resource requested. This method accepts a list of path
+segments which will be used in the HTTP request. The following documentation
+can be used to find more information. [https://trello.com/docs/api/webhook/index.html](https://trello.com/docs/api/webhook/index.html).
+
+# AUTHOR
+
+Al Newkirk <anewkirk@ana.io>
+
+# COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2014 by Al Newkirk.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
