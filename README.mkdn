@@ -2,7 +2,7 @@
 
 API::Trello - Perl 5 API wrapper for Trello
 
-[![Build Status](https://travis-ci.org/alnewkirk/API-Trello.png?branch=master)](https://travis-ci.org/alnewkirk/API-Trello)
+[![Build Status](https://travis-ci.org/AccessAbundant/API-Trello.png?branch=master)](https://travis-ci.org/AccessAbundant/API-Trello)
 
 # VERSION
 
@@ -186,6 +186,14 @@ This example illustrates how you can access the transaction object used
 represent and process the HTTP transaction.
 
 # ATTRIBUTES
+
+## camelize
+
+    $trello->camelize;
+    $trello->camelize(1);
+
+The camelize parameter determines whether HTTP request path parts will be
+automatically camelcased.
 
 ## identifier
 

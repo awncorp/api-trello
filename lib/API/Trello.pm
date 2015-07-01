@@ -10,27 +10,33 @@ use Scalar::Util ();
 
 # VERSION
 
+has camelize => (
+    is       => 'rw',
+    isa      => Int,
+    default  => 1,
+);
+
 has key => (
     is       => 'rw',
-    isa      => STRING,
+    isa      => Str,
     required => 1,
 );
 
 has token => (
     is       => 'rw',
-    isa      => STRING,
+    isa      => Str,
     required => 0,
 );
 
 has identifier => (
     is       => 'rw',
-    isa      => STRING,
+    isa      => Str,
     default  => 'API::Trello (Perl)',
 );
 
 has version => (
     is       => 'rw',
-    isa      => INTEGER,
+    isa      => Int,
     default  => 1,
 );
 
@@ -40,14 +46,16 @@ method AUTOLOAD () {
         unless Scalar::Util::blessed $self && $self->isa(__PACKAGE__);
 
     my @segments = @_;
+    my @results  = ();
 
-    # camelize the even parts
-    for (my $i = 0; $i < @segments; $i++) {
-        $segments[$i] =~ s/_([a-z])/\U$1/g if $i % 2 != 0;
+    my $camelize = $self->camelize;
+    while (my ($path, $param) = splice @segments, 0, 2) {
+        $path =~ s/([a-z])_([a-zA-Z])/$1\U$2/g if $camelize and defined $param;
+        push @results, $path, defined $param ? $param : ();
     }
 
     # return new resource instance dynamically
-    return $self->resource($method, @segments);
+    return $self->resource($method, @results);
 }
 
 method BUILD () {
@@ -311,6 +319,16 @@ This example illustrates how you might delete an API resource.
 
 This example illustrates how you can access the transaction object used
 represent and process the HTTP transaction.
+
+=cut
+
+=attr camelize
+
+    $trello->camelize;
+    $trello->camelize(1);
+
+The camelize parameter determines whether HTTP request path parts will be
+automatically camelcased.
 
 =cut
 

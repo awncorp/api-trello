@@ -189,6 +189,14 @@ THIN CLIENT
 
 ATTRIBUTES
 
+ camelize
+
+        $trello->camelize;
+        $trello->camelize(1);
+
+    The camelize parameter determines whether HTTP request path parts will
+    be automatically camelcased.
+
  identifier
 
         $trello->identifier;
