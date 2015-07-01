@@ -322,15 +322,21 @@ represent and process the HTTP transaction.
 
 =cut
 
-=attr camelize
+=head2 Camelizing
 
-    $trello->camelize;
     $trello->camelize(1);
 
-The camelize parameter determines whether HTTP request path parts will be
-automatically camelcased.
+    my $boards  = $trello->boards('4d5ea62fd76a');
+    my $members = $boards->members_invited;
+
+    $members->fetch( ... ); # GET /boards/4d5ea62fd76a/membersInvited
+
+This example illustrates how you can configure the client to automatically
+camelize the path part of the request. This is useful when interacting with an
+API that uses that convetion for defining endpoints.
 
 =cut
+
 
 =attr identifier
 
@@ -365,6 +371,16 @@ The token parameter should be set to the account holder's API access token.
     $trello->identifier('IDENTIFIER');
 
 The identifier parameter should be set using a string to identify your app.
+
+=cut
+
+=attr camelize
+
+    $trello->camelize;
+    $trello->camelize(1);
+
+The camelize attribute determines whether HTTP request path parts will be
+automatically camelcased.
 
 =cut
 

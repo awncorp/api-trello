@@ -187,15 +187,21 @@ THIN CLIENT
     This example illustrates how you can access the transaction object used
     represent and process the HTTP transaction.
 
-ATTRIBUTES
+ Camelizing
 
- camelize
-
-        $trello->camelize;
         $trello->camelize(1);
+    
+        my $boards  = $trello->boards('4d5ea62fd76a');
+        my $members = $boards->members_invited;
+    
+        $members->fetch( ... ); # GET /boards/4d5ea62fd76a/membersInvited
 
-    The camelize parameter determines whether HTTP request path parts will
-    be automatically camelcased.
+    This example illustrates how you can configure the client to
+    automatically camelize the path part of the request. This is useful
+    when interacting with an API that uses that convetion for defining
+    endpoints.
+
+ATTRIBUTES
 
  identifier
 
@@ -227,6 +233,14 @@ ATTRIBUTES
 
     The identifier parameter should be set using a string to identify your
     app.
+
+ camelize
+
+        $trello->camelize;
+        $trello->camelize(1);
+
+    The camelize attribute determines whether HTTP request path parts will
+    be automatically camelcased.
 
  debug
 
