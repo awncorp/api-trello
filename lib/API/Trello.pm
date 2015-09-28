@@ -167,7 +167,7 @@ The debug attribute if true prints HTTP requests and responses to standard out.
     $trello->fatal(1);
 
 The fatal attribute if true promotes 4xx and 5xx server response codes to
-exceptions, a L<API::Trello::Exception> object.
+exceptions, a L<API::Client::Exception> object.
 
 =cut
 
