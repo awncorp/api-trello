@@ -1,78 +1,53 @@
-# ABSTRACT: Perl 5 API wrapper for Trello
+# ABSTRACT: Trello.com API Client
 package API::Trello;
 
-use API::Trello::Class;
+use namespace::autoclean -except => 'has';
 
-extends 'API::Trello::Client';
+use Data::Object::Class;
+use Data::Object::Class::Syntax;
+use Data::Object::Signatures;
 
-use Carp ();
-use Scalar::Util ();
+use Data::Object qw(load);
+use Data::Object::Library qw(Str);
+
+extends 'API::Client';
 
 # VERSION
 
-has camelize => (
-    is       => 'rw',
-    isa      => Int,
-    default  => 1,
-);
+our $DEFAULT_URL = "https://api.trello.com";
 
-has key => (
-    is       => 'rw',
-    isa      => Str,
-    required => 1,
-);
+# ATTRIBUTES
 
-has token => (
-    is       => 'rw',
-    isa      => Str,
-    required => 0,
-);
+has key  => rw;
+has token => rw;
 
-has identifier => (
-    is       => 'rw',
-    isa      => Str,
-    default  => 'API::Trello (Perl)',
-);
+# CONSTRAINTS
 
-has version => (
-    is       => 'rw',
-    isa      => Int,
-    default  => 1,
-);
+req key  => Str;
+req token => Str;
 
-method AUTOLOAD () {
-    my ($package, $method) = our $AUTOLOAD =~ /^(.+)::(.+)$/;
-    Carp::croak "Undefined subroutine &${package}::$method called"
-        unless Scalar::Util::blessed $self && $self->isa(__PACKAGE__);
+# DEFAULTS
 
-    my @segments = @_;
-    my @results  = ();
+def casing     => 'camelcase';
+def identifier => 'API::Trello (Perl)';
+def url        => method { load('Mojo::URL')->new($DEFAULT_URL) };
+def version    => 1;
 
-    my $camelize = $self->camelize;
-    while (my ($path, $param) = splice @segments, 0, 2) {
-        $path =~ s/([a-z])_([a-zA-Z])/$1\U$2/g if $camelize and defined $param;
-        push @results, $path, defined $param ? $param : ();
-    }
+# CONSTRUCTION
 
-    # return new resource instance dynamically
-    return $self->resource($method, @results);
-}
-
-method BUILD () {
+after BUILD => method {
     my $key        = $self->key;
     my $token      = $self->token;
-    my $identifier = $self->identifier;
     my $version    = $self->version;
-    my $agent      = $self->user_agent;
     my $url        = $self->url;
-
-    $agent->transactor->name($identifier);
 
     $url->path("/$version");
     $url->query(key => $key, $token ? (token => $token) : ());
 
     return $self;
-}
+};
+
+# METHODS
 
 method PREPARE ($ua, $tx, %args) {
     my $headers = $tx->req->headers;
@@ -80,28 +55,6 @@ method PREPARE ($ua, $tx, %args) {
 
     # default headers
     $headers->header('Content-Type' => 'application/json');
-}
-
-method action ($method, %args) {
-    $method = uc($method || 'get');
-
-    # execute transaction and return response
-    return $self->$method(%args);
-}
-
-method create (%args) {
-    # execute transaction and return response
-    return $self->POST(%args);
-}
-
-method delete (%args) {
-    # execute transaction and return response
-    return $self->DELETE(%args);
-}
-
-method fetch (%args) {
-    # execute transaction and return response
-    return $self->GET(%args);
 }
 
 method resource (@segments) {
@@ -126,11 +79,6 @@ method resource (@segments) {
 
     # return resource instance
     return $instance;
-}
-
-method update (%args) {
-    # execute transaction and return response
-    return $self->PUT(%args);
 }
 
 1;
@@ -162,188 +110,18 @@ method update (%args) {
 This distribution provides an object-oriented thin-client library for
 interacting with the Trello (L<http://trello.com>) API. For usage and
 documentation information visit L<https://trello.com/docs/gettingstarted/index.html>.
+API::Trello is derived from L<API::Client> and inherits all of it's
+functionality. Please read the documentation for API::Client for more usage
+information.
 
 =cut
-
-=head1 THIN CLIENT
-
-A thin-client library is advantageous as it has complete API coverage and
-can easily adapt to changes in the API with minimal effort. As a thin-client
-library, this module does not map specific HTTP requests to specific routines,
-nor does it provide parameter validation, pagination, or other conventions
-found in typical API client implementations, instead, it simply provides a
-simple and consistent mechanism for dynamically generating HTTP requests.
-Additionally, this module has support for debugging and retrying API calls as
-well as throwing exceptions when 4xx and 5xx server response codes are
-returned.
-
-=cut
-
-=head2 Building
-
-    my $board = $trello->boards('4d5ea62fd76a');
-
-    $board->action; # GET /boards/4d5ea62fd76a
-    $board->action('head'); # HEAD /boards/4d5ea62fd76a
-    $board->action('patch'); # PATCH /boards/4d5ea62fd76a
-
-Building up an HTTP request object is extremely easy, simply call method names
-which correspond to the API's path segments in the resource you wish to execute
-a request against. This module uses autoloading and returns a new instance with
-each method call. The following is the equivalent:
-
-=head2 Chaining
-
-    my $board = $trello->resource('boards', '4d5ea62fd76a');
-
-    # or
-
-    my $boards = $trello->boards;
-    my $board  = $boards->resource('4d5ea62fd76a');
-
-    # then
-
-    $board->action('put', %args); # PUT /boards/4d5ea62fd76a
-
-Because each call returns a new API instance configured with a resource locator
-based on the supplied parameters, reuse and request isolation are made simple,
-i.e., you will only need to configure the client once in your application.
-
-=head2 Fetching
-
-    my $boards = $trello->boards;
-
-    # query-string parameters
-
-    $boards->fetch( query => { ... } );
-
-    # equivalent to
-
-    my $boards = $trello->resource('boards');
-
-    $boards->action( get => ( query => { ... } ) );
-
-This example illustrates how you might fetch an API resource.
-
-=head2 Creating
-
-    my $boards = $trello->boards;
-
-    # content-body parameters
-
-    $boards->create( data => { ... } );
-
-    # query-string parameters
-
-    $boards->create( query => { ... } );
-
-    # equivalent to
-
-    $trello->resource('boards')->action(
-        post => ( query => { ... }, data => { ... } )
-    );
-
-This example illustrates how you might create a new API resource.
-
-=head2 Updating
-
-    my $boards = $trello->boards;
-    my $board  = $boards->resource('4d5ea62fd76a');
-
-    # content-body parameters
-
-    $board->update( data => { ... } );
-
-    # query-string parameters
-
-    $board->update( query => { ... } );
-
-    # or
-
-    my $board = $trello->boards('4d5ea62fd76a');
-
-    $board->update(...);
-
-    # equivalent to
-
-    $trello->resource('boards')->action(
-        put => ( query => { ... }, data => { ... } )
-    );
-
-This example illustrates how you might update a new API resource.
-
-=head2 Deleting
-
-    my $boards = $trello->boards;
-    my $board  = $boards->resource('4d5ea62fd76a');
-
-    # content-body parameters
-
-    $board->delete( data => { ... } );
-
-    # query-string parameters
-
-    $board->delete( query => { ... } );
-
-    # or
-
-    my $board = $trello->boards('4d5ea62fd76a');
-
-    $board->delete(...);
-
-    # equivalent to
-
-    $trello->resource('boards')->action(
-        delete => ( query => { ... }, data => { ... } )
-    );
-
-This example illustrates how you might delete an API resource.
-
-=cut
-
-=head2 Transacting
-
-    my $boards = $trello->resource('boards', '4d5ea62fd76a');
-
-    my ($results, $transaction) = $boards->action( ... );
-
-    my $request  = $transaction->req;
-    my $response = $transaction->res;
-
-    my $headers;
-
-    $headers = $request->headers;
-    $headers = $response->headers;
-
-    # etc
-
-This example illustrates how you can access the transaction object used
-represent and process the HTTP transaction.
-
-=cut
-
-=head2 Camelizing
-
-    $trello->camelize(1);
-
-    my $boards  = $trello->boards('4d5ea62fd76a');
-    my $members = $boards->members_invited;
-
-    $members->fetch( ... ); # GET /boards/4d5ea62fd76a/membersInvited
-
-This example illustrates how you can configure the client to automatically
-camelize the path part of the request. This is useful when interacting with an
-API that uses that convetion for defining endpoints.
-
-=cut
-
 
 =attr identifier
 
     $trello->identifier;
     $trello->identifier('IDENTIFIER');
 
-The identifier parameter should be set to a string that identifies your application.
+The identifier attribute should be set to a string that identifies your application.
 
 =cut
 
@@ -352,7 +130,7 @@ The identifier parameter should be set to a string that identifies your applicat
     $trello->key;
     $trello->key('KEY');
 
-The key parameter should be set to the account holder's API key.
+The key attribute should be set to the account holder's API key.
 
 =cut
 
@@ -361,7 +139,7 @@ The key parameter should be set to the account holder's API key.
     $trello->token;
     $trello->token('TOKEN');
 
-The token parameter should be set to the account holder's API access token.
+The token attribute should be set to the account holder's API access token.
 
 =cut
 
@@ -370,17 +148,7 @@ The token parameter should be set to the account holder's API access token.
     $trello->identifier;
     $trello->identifier('IDENTIFIER');
 
-The identifier parameter should be set using a string to identify your app.
-
-=cut
-
-=attr camelize
-
-    $trello->camelize;
-    $trello->camelize(1);
-
-The camelize attribute determines whether HTTP request path parts will be
-automatically camelcased.
+The identifier attribute should be set using a string to identify your app.
 
 =cut
 
