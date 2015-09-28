@@ -1,6 +1,7 @@
 Changelog for API-Trello
 
-0.04 2015-09-28T03:47:18
+0.04 2015-09-28T04:06:32
+ - Updated build.
  - Refactored to derive from API::Client.
  - Updated documentation.
  - Updated dist.ini.
