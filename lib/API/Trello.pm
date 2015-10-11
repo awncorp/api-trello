@@ -1,14 +1,12 @@
 # ABSTRACT: Trello.com API Client
 package API::Trello;
 
-use namespace::autoclean -except => 'has';
-
 use Data::Object::Class;
-use Data::Object::Class::Syntax;
 use Data::Object::Signatures;
 
-use Data::Object qw(load);
-use Data::Object::Library qw(Str);
+use Data::Object::Library qw(
+    Str
+);
 
 extends 'API::Client';
 
@@ -18,24 +16,44 @@ our $DEFAULT_URL = "https://api.trello.com";
 
 # ATTRIBUTES
 
-has key  => rw;
-has token => rw;
+has key => (
+    is       => 'rw',
+    isa      => Str,
+    required => 1,
+);
 
-# CONSTRAINTS
-
-req key  => Str;
-req token => Str;
+has token => (
+    is       => 'rw',
+    isa      => Str,
+    required => 1,
+);
 
 # DEFAULTS
 
-def casing     => 'camelcase';
-def identifier => 'API::Trello (Perl)';
-def url        => method { load('Mojo::URL')->new($DEFAULT_URL) };
-def version    => 1;
+has '+casing' => (
+    default  => 'camelcase',
+    required => 0,
+);
+
+has '+identifier' => (
+    default  => 'API::Trello (Perl)',
+    required => 0,
+);
+
+has '+url' => (
+    default  => $DEFAULT_URL,
+    required => 0,
+);
+
+has '+version' => (
+    default  => 1,
+    required => 0,
+);
 
 # CONSTRUCTION
 
 after BUILD => method {
+
     my $key        = $self->key;
     my $token      = $self->token;
     my $version    = $self->version;
@@ -45,19 +63,23 @@ after BUILD => method {
     $url->query(key => $key, $token ? (token => $token) : ());
 
     return $self;
+
 };
 
 # METHODS
 
 method PREPARE ($ua, $tx, %args) {
+
     my $headers = $tx->req->headers;
     my $url     = $tx->req->url;
 
     # default headers
     $headers->header('Content-Type' => 'application/json');
+
 }
 
 method resource (@segments) {
+
     # build new resource instance
     my $instance = __PACKAGE__->new(
         debug      => $self->debug,
@@ -79,6 +101,7 @@ method resource (@segments) {
 
     # return resource instance
     return $instance;
+
 }
 
 1;
