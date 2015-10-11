@@ -1,6 +1,7 @@
 Changelog for API-Trello
 
-0.06 2015-10-11T08:07:01
+0.06 2015-10-11T08:10:13
+ - Updated build.
  - Modified the implementation style and dependencies.
 
 0.05 2015-09-28T13:18:23
